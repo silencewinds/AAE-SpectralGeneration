@@ -1,0 +1,61 @@
+import torch
+from torch import nn
+from torch.autograd import Variable
+import torch.utils.data as Data
+from sklearn.model_selection import train_test_split
+from AFKMO_classification.pro_data import X,y
+
+EPOCH=30
+BATCH_SIZE=16
+TIME_STEP=10
+INPUT_SIZE=350
+LEARNING_RATE=0.0001
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25,random_state=666)
+X_train=torch.from_numpy(X_train)
+X_test=torch.from_numpy(X_test)
+y_train=torch.from_numpy(y_train)
+y_test=torch.from_numpy(y_test)
+y_test = y_test.numpy()
+y_test=y_test.reshape(1,-1).squeeze()    #y_test改为numpy格式可与预测的值判等
+train_dataset = Data.TensorDataset(X_train, y_train)
+train_loader=torch.utils.data.DataLoader(dataset=train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+
+class RNN(nn.Module):
+    def __init__(self):
+        super(RNN, self).__init__()
+        self.rnn=nn.RNN(input_size=INPUT_SIZE,hidden_size=64,num_layers=2,batch_first=True)
+        self.out=nn.Linear(64,5)
+    def forward(self, x):              #x(batch,time_step,input_size)
+        r_out,hstate=self.rnn(x,None)  #None，表示hidden state会用全0的state
+        out=self.out(r_out[:,-1,:])    #选取最后一个时刻
+        return out
+
+rnn=RNN()
+optimizer=torch.optim.Adam(rnn.parameters(),lr=LEARNING_RATE)
+criterion=nn.CrossEntropyLoss()
+
+for epoch in range(EPOCH):
+    print("==>training......")
+    for step,(x,y) in enumerate(train_loader):      #迭代loader拿数据
+        b_x=x.view(-1,10,350)                       #reshape为(batch_size,time_step,input_size)
+        b_x=b_x.float()
+        output=rnn(b_x)
+        output=output.float()
+        b_y=Variable(y.long()).squeeze()
+        loss=criterion(output,b_y)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+    X_test=X_test.view(-1,10,350)
+    X_test=X_test.float()
+    test_output=rnn(X_test)
+    test_output=test_output.float()
+    pred_y=torch.max(test_output,1)[1].data.numpy().squeeze()
+    acc=(pred_y==y_test).sum()/y_test.size
+    print('Epoch:',epoch+1,'|train loss:%.4f'%loss.item(),'|test acc:%.4f'%acc)
+
+torch.save(rnn.state_dict(),'./rnn_param.pkl')
+

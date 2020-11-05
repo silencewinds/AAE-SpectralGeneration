@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="8ddc39e2-9d3c-4984-a305-61dc01051dea" name="sad" url="http://geeekvr.com">
+        <fileTransfer host="geeekvr.com" port="8192" rootFolder="/root/Lamos" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="8192" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
